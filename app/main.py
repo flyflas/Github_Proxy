@@ -11,6 +11,8 @@ from requests.utils import (
 from urllib3.exceptions import (
     DecodeError, ReadTimeoutError, ProtocolError)
 
+import json
+
 # config
 # 分支文件使用jsDelivr镜像的开关，0为关闭，默认关闭
 jsdelivr = 0
@@ -112,9 +114,29 @@ def check_url(u):
             return m
     return False
 
+def check_password(username, password):
+    # 从文件中读取JSON数据
+    with open('./config.json', 'r') as file:
+        data = json.load(file)
+
+    # 从字典中获取用户名和密码
+    user = data.get('username')
+    passwd = data.get('password')
+
+    print('username: ', username)
+    print('password: ', password)
+    print('user: ', user)
+    print('passwd: ', passwd)
+
+    return username == user and password == passwd
+
 
 @app.route('/<path:u>', methods=['GET', 'POST'])
 def handler(u):
+    if not check_password(request.args.get("username"), request.args.get("password")):
+       return Response('Forbidden. Incorrect username or password', status=403)
+
+    u = u.split('?')[0]
     u = u if u.startswith('http') else 'https://' + u
     if u.rfind('://', 3, 9) == -1:
         u = u.replace('s:/', 's://', 1)  # uwsgi会将//传递为/
